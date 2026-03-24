@@ -1,0 +1,1668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MakeBot</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Press+Start+2P&display=swap');
+
+  :root, [data-theme="deep-sea"] {
+    --bg:       #050505;
+    --panel:    #041e27;
+    --border:   #177E89;
+    --accent:   #177E89;
+    --hi:       #DB3A34;
+    --dim:      #177E89;
+    --txt:      #177E89;
+    --user-bg:  #177E89;
+    --user-txt: #050505;
+    --bot-bg:   #050505;
+    --bot-txt:  #177E89;
+    --btn-color:  #177E89;
+    --btn-border: #DB3A34;
+    --pixel: 2px;
+  }
+
+  [data-theme="phosphor"] {
+    --bg:       #0a0a08;
+    --panel:    #111110;
+    --border:   #33ff33;
+    --accent:   #33ff33;
+    --hi:       #ffcc00;
+    --dim:      #2ab82a;
+    --txt:      #33ff33;
+    --user-bg:  #33ff33;
+    --user-txt: #0a0a08;
+    --bot-bg:   #0a0a08;
+    --bot-txt:  #33ff33;
+    --btn-color:  #33ff33;
+    --btn-border: #ffcc00;
+  }
+
+  [data-theme="amber"] {
+    --bg:       #0c0800;
+    --panel:    #1a1200;
+    --border:   #ff8c00;
+    --accent:   #ff8c00;
+    --hi:       #ff3333;
+    --dim:      #cc7000;
+    --txt:      #ff8c00;
+    --user-bg:  #ff8c00;
+    --user-txt: #0c0800;
+    --bot-bg:   #0c0800;
+    --bot-txt:  #ff8c00;
+    --btn-color:  #ff8c00;
+    --btn-border: #ff3333;
+  }
+
+  [data-theme="arctic"] {
+    --bg:       #0b0e14;
+    --panel:    #121820;
+    --border:   #5b9bd5;
+    --accent:   #5b9bd5;
+    --hi:       #e06c75;
+    --dim:      #4a8ac4;
+    --txt:      #5b9bd5;
+    --user-bg:  #5b9bd5;
+    --user-txt: #0b0e14;
+    --bot-bg:   #0b0e14;
+    --bot-txt:  #5b9bd5;
+    --btn-color:  #5b9bd5;
+    --btn-border: #e06c75;
+  }
+
+  [data-theme="sakura"] {
+    --bg:       #110810;
+    --panel:    #1a0e18;
+    --border:   #d1698c;
+    --accent:   #d1698c;
+    --hi:       #e8b4cb;
+    --dim:      #b05878;
+    --txt:      #d1698c;
+    --user-bg:  #d1698c;
+    --user-txt: #110810;
+    --bot-bg:   #110810;
+    --bot-txt:  #d1698c;
+    --btn-color:  #d1698c;
+    --btn-border: #e8b4cb;
+  }
+
+  [data-theme="solder"] {
+    --bg:       #0d0d0d;
+    --panel:    #1a1a1a;
+    --border:   #888888;
+    --accent:   #cccccc;
+    --hi:       #ff5555;
+    --dim:      #666666;
+    --txt:      #aaaaaa;
+    --user-bg:  #cccccc;
+    --user-txt: #0d0d0d;
+    --bot-bg:   #0d0d0d;
+    --bot-txt:  #aaaaaa;
+    --btn-color:  #cccccc;
+    --btn-border: #ff5555;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--txt);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    image-rendering: pixelated;
+  }
+
+  .shell {
+    width: 660px;
+    max-width: 98vw;
+    height: 90vh;
+    display: flex;
+    flex-direction: column;
+    transition: width 0.3s ease, max-width 0.3s ease;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    border: var(--pixel) solid var(--border);
+    border-bottom: none;
+    background: var(--panel);
+    padding: 10px 14px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .header-left { display: flex; flex-direction: column; gap: 3px; }
+
+  .logo {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    line-height: 1;
+  }
+
+  .tagline {
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .status-cluster { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    background: var(--hi);
+    display: inline-block;
+    animation: blink 1.4s step-end infinite;
+  }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  .status-text { font-size: 9px; color: var(--hi); letter-spacing: 1px; }
+
+  .pixel-divider {
+    height: var(--pixel);
+    background: var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .pixel-divider::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      90deg, var(--accent) 0px, var(--accent) 6px,
+      transparent 6px, transparent 12px
+    );
+    opacity: 0.3;
+  }
+
+  /* ── MESSAGES ── */
+  .messages {
+    border-left: var(--pixel) solid var(--border);
+    border-right: var(--pixel) solid var(--border);
+    background: var(--bg);
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    scroll-behavior: smooth;
+  }
+
+  .messages::-webkit-scrollbar { width: 6px; }
+  .messages::-webkit-scrollbar-track { background: var(--panel); }
+  .messages::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .msg {
+    display: flex; flex-direction: column; gap: 4px;
+    animation: fadeUp 0.15s ease-out forwards;
+    opacity: 0; transform: translateY(6px);
+  }
+
+  @keyframes fadeUp { to { opacity:1; transform:translateY(0); } }
+
+  .msg-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px; letter-spacing: 2px;
+    color: var(--dim); text-transform: uppercase;
+  }
+
+  .msg.user .msg-label { color: var(--accent); text-align: right; }
+  .msg.user { align-items: flex-end; }
+  .msg.bot  { align-items: flex-start; }
+
+  .msg-bubble {
+    max-width: 82%;
+    padding: 8px 12px;
+    line-height: 1.65;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    word-break: break-word;
+  }
+
+  .msg.bot .msg-bubble {
+    background: var(--bot-bg);
+    color: var(--bot-txt);
+    border: var(--pixel) solid var(--accent);
+    box-shadow: 4px 4px 0 var(--bg), 4px 4px 0 1px var(--border);
+  }
+
+  .msg.user .msg-bubble {
+    background: var(--user-bg);
+    color: var(--user-txt);
+    border: var(--pixel) solid var(--hi);
+    box-shadow: -4px 4px 0 var(--bg), -4px 4px 0 1px var(--border);
+  }
+
+  /* Structured build guide bubbles get more width */
+  .msg.bot .msg-bubble.structured {
+    max-width: 96%;
+  }
+
+  /* ── STREAMING CURSOR ── */
+  .streaming-cursor::after {
+    content: '\2588';
+    color: var(--accent);
+    margin-left: 2px;
+    animation: cursorPulse 0.8s ease-in-out infinite;
+  }
+
+  @keyframes cursorPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.15; }
+  }
+
+  /* ── STREAMING BUBBLE EFFECTS ── */
+  .msg.bot .msg-bubble.streaming-cursor {
+    border-color: var(--accent);
+    animation: borderGlow 1.5s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
+  }
+
+  @keyframes borderGlow {
+    0%, 100% { box-shadow: 4px 4px 0 var(--bg), 4px 4px 0 1px var(--border); }
+    50% { box-shadow: 4px 4px 0 var(--bg), 4px 4px 0 1px var(--accent), 0 0 12px rgba(255,255,255,0.04); }
+  }
+
+  .msg.bot .msg-bubble.streaming-cursor::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent);
+    animation: scanLine 2s linear infinite;
+    pointer-events: none;
+  }
+
+  @keyframes scanLine {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
+
+  /* ── GENERATING STATUS PULSE ── */
+  .status-dot.active {
+    animation: dotPulse 0.6s ease-in-out infinite;
+  }
+
+  @keyframes dotPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.4); }
+  }
+
+  /* ── STRUCTURED CONTENT ── */
+  .msg-bubble .project-name {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    color: var(--hi);
+    letter-spacing: 2px;
+    padding-bottom: 8px;
+    border-bottom: var(--pixel) dashed var(--border);
+    margin-bottom: 10px;
+    line-height: 1.8;
+  }
+
+  .msg-bubble .section-header {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    padding: 14px 0 6px;
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
+
+  .msg-bubble .wiring-block {
+    background: var(--panel);
+    border: var(--pixel) solid var(--border);
+    padding: 12px 14px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    line-height: 1.35;
+    overflow-x: auto;
+    color: var(--accent);
+    margin: 6px 0;
+    white-space: pre;
+    tab-size: 2;
+  }
+
+  .msg-bubble .parts-list {
+    list-style: none;
+    padding: 0;
+    margin: 6px 0;
+  }
+
+  .msg-bubble .parts-list li {
+    padding: 4px 0 4px 18px;
+    position: relative;
+    font-size: 11px;
+    line-height: 1.55;
+  }
+
+  .msg-bubble .parts-list li::before {
+    content: '\25B8';
+    position: absolute;
+    left: 2px;
+    color: var(--hi);
+    font-size: 10px;
+  }
+
+  .msg-bubble .steps-list {
+    list-style: none;
+    counter-reset: step;
+    padding: 0;
+    margin: 6px 0;
+  }
+
+  .msg-bubble .steps-list li {
+    counter-increment: step;
+    padding: 8px 0 8px 32px;
+    position: relative;
+    font-size: 11px;
+    line-height: 1.6;
+    border-bottom: 1px solid rgba(23, 126, 137, 0.12);
+  }
+
+  .msg-bubble .steps-list li:last-child { border-bottom: none; }
+
+  .msg-bubble .steps-list li::before {
+    content: counter(step, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    top: 9px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: var(--hi);
+  }
+
+  .msg-bubble strong { color: var(--accent); font-weight: bold; }
+  .msg-bubble code { background: var(--panel); padding: 1px 5px; font-size: 11px; border: 1px solid var(--border); }
+  .msg-bubble p { margin: 4px 0; line-height: 1.6; }
+
+  .msg-bubble .section-header + .wiring-block,
+  .msg-bubble .section-header + ul,
+  .msg-bubble .section-header + ol,
+  .msg-bubble .section-header + p {
+    margin-top: 6px;
+  }
+
+  .msg-bubble .section-header {
+    border-top: 1px solid rgba(23, 126, 137, 0.2);
+    margin-top: 12px;
+  }
+
+  .msg-bubble .section-header:first-child {
+    border-top: none;
+    margin-top: 0;
+  }
+
+  /* ── SKILL BAR ── */
+  .skill-bar {
+    border-left: var(--pixel) solid var(--border);
+    border-right: var(--pixel) solid var(--border);
+    background: var(--panel);
+    padding: 6px 12px;
+    display: flex;
+    gap: 4px;
+  }
+
+  .skill-chip {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    letter-spacing: 1px;
+    padding: 5px 0;
+    flex: 1;
+    text-align: center;
+    color: var(--dim);
+    cursor: pointer;
+    border: var(--pixel) solid transparent;
+    background: transparent;
+    transition: color 0.1s;
+  }
+
+  .skill-chip:hover { color: var(--accent); }
+  .skill-chip.active {
+    color: var(--hi);
+    border-color: var(--border);
+    background: var(--bg);
+  }
+
+  .age-control {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: auto;
+    padding-left: 8px;
+    border-left: var(--pixel) solid var(--border);
+  }
+
+  .age-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    letter-spacing: 1px;
+    color: var(--dim);
+    flex-shrink: 0;
+  }
+
+  .age-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 60px;
+    height: 3px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+
+  .age-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 10px;
+    height: 10px;
+    background: var(--accent);
+    border: var(--pixel) solid var(--hi);
+    cursor: pointer;
+  }
+
+  .age-val {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: var(--accent);
+    min-width: 18px;
+    text-align: right;
+  }
+
+  /* ── SIMULATE ── */
+  .sim-btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: var(--user-txt);
+    background: var(--hi);
+    border: var(--pixel) solid var(--accent);
+    padding: 10px 24px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    transition: filter 0.05s, transform 0.05s;
+  }
+
+  .sim-btn:hover { filter: brightness(1.2); }
+  .sim-btn:active { transform: translate(2px, 2px); }
+  .sim-btn:disabled { opacity: 0.5; cursor: default; filter: none; }
+
+  .sim-wrap {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .sim-frame-container {
+    border: var(--pixel) solid var(--border);
+    background: var(--panel);
+    overflow: hidden;
+  }
+
+  .sim-frame {
+    width: 100%;
+    height: 420px;
+    border: none;
+    display: block;
+  }
+
+  .sim-link {
+    font-size: 9px;
+    color: var(--dim);
+    letter-spacing: 1px;
+    text-align: center;
+  }
+
+  .sim-link a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .sim-link a:hover { color: var(--hi); }
+
+  /* ── INPUT ── */
+  .input-area {
+    border-left: var(--pixel) solid var(--border);
+    border-right: var(--pixel) solid var(--border);
+    background: var(--panel);
+    padding: 10px 12px;
+    display: flex; gap: 8px; align-items: center;
+  }
+
+  .prompt-symbol {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px; color: var(--accent);
+    flex-shrink: 0; padding-top: 1px;
+  }
+
+  .input-field {
+    flex: 1; background: transparent;
+    border: none; outline: none;
+    color: var(--txt);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px; letter-spacing: 0.5px;
+    caret-color: var(--accent);
+  }
+
+  .input-field::placeholder { color: var(--dim); opacity: 0.5; }
+  .input-field:disabled { opacity: 0.4; }
+
+  .send-btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: var(--user-txt);
+    background: var(--btn-color);
+    border: var(--pixel) solid var(--btn-border);
+    padding: 7px 10px; cursor: pointer;
+    letter-spacing: 1px; text-transform: uppercase;
+    transition: filter 0.05s, transform 0.05s;
+    min-width: 60px;
+  }
+
+  .send-btn:hover { filter: brightness(1.2); }
+  .send-btn:active { transform: translate(2px,2px); filter: none; }
+
+  /* ── BOTTOM ROW ── */
+  .bottom-row {
+    border: var(--pixel) solid var(--border);
+    background: var(--panel);
+    padding: 7px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .settings-btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: var(--dim);
+    background: transparent;
+    border: var(--pixel) solid var(--border);
+    padding: 4px 10px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    transition: color 0.1s, border-color 0.1s;
+  }
+
+  .settings-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .settings-btn:active { transform: translate(1px, 1px); }
+
+  .footer-right {
+    font-size: 9px;
+    color: var(--dim);
+    letter-spacing: 1px;
+  }
+
+  .msg.system { align-items: center; }
+  .msg.system .msg-bubble {
+    font-size: 10px; color: var(--dim);
+    background: transparent; border: none; box-shadow: none;
+    text-align: center; padding: 2px 0;
+    letter-spacing: 2px; text-transform: uppercase;
+    max-width: 100%;
+  }
+
+  /* ── SETTINGS OVERLAY ── */
+  .settings-overlay {
+    border-left: var(--pixel) solid var(--border);
+    border-right: var(--pixel) solid var(--border);
+    background: var(--bg);
+    flex: 1;
+    min-height: 0;
+    padding: 24px 14px;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+  }
+
+  .settings-box {
+    border: var(--pixel) solid var(--border);
+    background: var(--panel);
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    width: 100%;
+    max-width: 380px;
+  }
+
+  .settings-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: var(--dim);
+    letter-spacing: 3px;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .settings-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .settings-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg);
+    border: var(--pixel) solid var(--border);
+    padding: 8px 12px;
+  }
+
+  .settings-input-row .input-field {
+    font-size: 12px;
+  }
+
+  .settings-hint {
+    font-size: 10px;
+    color: var(--dim);
+    text-align: center;
+    letter-spacing: 1px;
+    min-height: 0;
+  }
+
+  .settings-hint a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .settings-hint a:hover { color: var(--hi); }
+
+  .settings-error {
+    font-size: 10px;
+    color: var(--hi);
+    text-align: center;
+    letter-spacing: 1px;
+    min-height: 14px;
+  }
+
+  .settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .settings-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+
+  .settings-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    background: var(--accent);
+    border: var(--pixel) solid var(--hi);
+    cursor: pointer;
+  }
+
+  .settings-val {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: var(--accent);
+    min-width: 32px;
+    text-align: right;
+  }
+
+  .theme-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .theme-chip {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    letter-spacing: 1px;
+    padding: 5px 8px;
+    border: var(--pixel) solid var(--border);
+    background: var(--panel);
+    color: var(--dim);
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: filter 0.05s, transform 0.05s;
+  }
+
+  .theme-chip:hover { filter: brightness(1.3); }
+  .theme-chip:active { transform: translate(1px, 1px); }
+  .theme-chip.active { border-color: var(--hi); color: var(--accent); background: var(--bg); }
+
+  .settings-divider {
+    height: 1px;
+    background: var(--border);
+    opacity: 0.25;
+  }
+
+  /* ── EXPANDED SHELL (after first prompt) ── */
+  .shell.expanded {
+    width: 96vw;
+    max-width: 1100px;
+    height: 96vh;
+  }
+
+  .shell.expanded .msg.bot .msg-bubble.structured {
+    max-width: 100%;
+  }
+
+  /* ── EDITABLE PROJECT NAME ── */
+  .msg-bubble .project-name[contenteditable="true"] {
+    cursor: text;
+    outline: none;
+    border-bottom: var(--pixel) dashed var(--border);
+    transition: border-color 0.15s;
+  }
+
+  .msg-bubble .project-name[contenteditable="true"]:hover {
+    border-color: var(--hi);
+  }
+
+  .msg-bubble .project-name[contenteditable="true"]:focus {
+    border-color: var(--hi);
+  }
+
+  .project-name-hint {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px;
+    color: var(--dim);
+    opacity: 0.5;
+    letter-spacing: 1px;
+    margin-top: -6px;
+    margin-bottom: 8px;
+  }
+
+  /* ── COLLAPSIBLE CODE FILE BAR ── */
+  .code-wrap {
+    margin: 6px 0;
+  }
+
+  .code-file-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: var(--panel);
+    border: var(--pixel) solid var(--border);
+    cursor: pointer;
+    transition: border-color 0.1s;
+  }
+
+  .code-file-bar:hover {
+    border-color: var(--accent);
+  }
+
+  .code-file-bar .file-arrow {
+    font-size: 8px;
+    color: var(--dim);
+    transition: transform 0.15s;
+    flex-shrink: 0;
+  }
+
+  .code-wrap.open .code-file-bar .file-arrow {
+    transform: rotate(90deg);
+  }
+
+  .code-file-bar .file-name {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.5px;
+    flex: 1;
+  }
+
+  .code-file-actions {
+    display: flex;
+    gap: 4px;
+  }
+
+  .code-file-btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    letter-spacing: 1px;
+    color: var(--dim);
+    background: transparent;
+    border: var(--pixel) solid var(--border);
+    padding: 3px 8px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: color 0.1s, border-color 0.1s;
+  }
+
+  .code-file-btn:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .code-file-btn:active {
+    transform: translate(1px, 1px);
+  }
+
+  .code-file-btn.copied {
+    color: var(--hi);
+    border-color: var(--hi);
+  }
+
+  .code-wrap .wiring-block {
+    margin-top: 0;
+    border-top: none;
+    display: none;
+  }
+
+  .code-wrap.open .wiring-block {
+    display: block;
+  }
+
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">MAKEBOT</div>
+      <div class="tagline">describe it. build it.</div>
+    </div>
+
+    <div class="status-cluster">
+      <div class="status-dot"></div>
+      <div class="status-text" id="statusText">ONLINE</div>
+    </div>
+  </div>
+
+  <div class="pixel-divider"></div>
+
+  <div class="messages" id="messages">
+    <div class="msg system"><div class="msg-bubble">── new session ──</div></div>
+    <div class="msg bot">
+      <div class="msg-label">MAKEBOT</div>
+      <div class="msg-bubble">Describe any hardware project and I'll generate a complete build guide — wiring diagram, parts list, and step-by-step instructions.<br><br><strong>Try:</strong> "robot arm using arduino uno and 3 servos"</div>
+    </div>
+  </div>
+
+  <div class="settings-overlay" id="settingsOverlay">
+    <div class="settings-box">
+      <div class="settings-title">── settings ──</div>
+
+      <div class="settings-section">
+        <div class="settings-label">API Key</div>
+        <div class="settings-input-row">
+          <div class="prompt-symbol">&gt;_</div>
+          <input class="input-field" id="keyInput" type="password"
+            placeholder="sk-ant-..." autocomplete="off" spellcheck="false"/>
+        </div>
+        <button class="send-btn" id="saveKeyBtn" style="align-self:center;">SAVE KEY</button>
+        <div class="settings-error" id="keyStatus"></div>
+        <div class="settings-hint">
+          get your key → <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>
+        </div>
+      </div>
+
+      <div class="settings-divider"></div>
+
+      <div class="settings-section">
+        <div class="settings-label">Theme</div>
+        <div class="theme-grid" id="themeGrid">
+          <div class="theme-chip" data-theme="deep-sea">Deep Sea</div>
+          <div class="theme-chip" data-theme="phosphor">Phosphor</div>
+          <div class="theme-chip" data-theme="amber">Amber</div>
+          <div class="theme-chip" data-theme="arctic">Arctic</div>
+          <div class="theme-chip" data-theme="sakura">Sakura</div>
+          <div class="theme-chip active" data-theme="solder">Solder</div>
+        </div>
+      </div>
+
+      <div class="settings-divider"></div>
+
+      <div class="settings-section">
+        <div class="settings-label">UI Scale</div>
+        <div class="settings-row">
+          <input class="settings-slider" id="scaleSlider" type="range"
+            min="80" max="200" step="10" value="110"/>
+          <span class="settings-val" id="scaleVal">110%</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="pixel-divider"></div>
+
+  <div class="skill-bar">
+    <div class="skill-chip active" data-skill="1" data-label="MONKEY">MONKEY</div>
+    <div class="skill-chip" data-skill="2" data-label="NOVICE">NOVICE</div>
+    <div class="skill-chip" data-skill="3" data-label="BUILDER">BUILDER</div>
+    <div class="skill-chip" data-skill="4" data-label="HACKER">HACKER</div>
+    <div class="skill-chip" data-skill="5" data-label="EXPERT">EXPERT</div>
+    <div class="age-control">
+      <span class="age-label">AGE</span>
+      <input class="age-slider" id="ageSlider" type="range" min="6" max="60" step="1" value="25"/>
+      <span class="age-val" id="ageVal">25</span>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="prompt-symbol">&gt;_</div>
+    <input class="input-field" id="inputField" type="text"
+      placeholder="describe your project..." autocomplete="off" spellcheck="false" maxlength="300"/>
+    <button class="send-btn" id="sendBtn">SEND</button>
+  </div>
+
+  <div class="bottom-row">
+    <button class="settings-btn" id="settingsBtn">SETTINGS</button>
+    <button class="settings-btn" id="exportBtn">EXPORT</button>
+    <span class="footer-right" id="charCount">0 / 300</span>
+  </div>
+
+</div>
+
+<script>
+  const msgs            = document.getElementById('messages');
+  const input           = document.getElementById('inputField');
+  const sendBtn         = document.getElementById('sendBtn');
+  const charCount       = document.getElementById('charCount');
+  const statusText      = document.getElementById('statusText');
+  const settingsOverlay = document.getElementById('settingsOverlay');
+  const keyInput        = document.getElementById('keyInput');
+  const saveKeyBtn      = document.getElementById('saveKeyBtn');
+  const keyStatus       = document.getElementById('keyStatus');
+  const settingsBtn     = document.getElementById('settingsBtn');
+  const root            = document.documentElement;
+
+  let controller  = null;
+  let generating  = false;
+  let lastPrompt  = '';
+  let lastGuide   = '';
+  let lastSkill   = '';
+
+  /* ── Char count ── */
+  input.addEventListener('input', () => {
+    charCount.textContent = `${input.value.length} / 300`;
+  });
+
+  /* ── Auto-scroll (respects user scrolling) ── */
+  let userScrolledUp = false;
+  msgs.addEventListener('scroll', () => {
+    if (generating) {
+      const nearBottom = msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight < 80;
+      userScrolledUp = !nearBottom;
+    }
+  });
+
+  function scrollDown() {
+    if (!userScrolledUp) {
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+  }
+
+  /* ── Add messages ── */
+  function addMessage(text, role) {
+    const wrap = document.createElement('div');
+    wrap.classList.add('msg', role);
+    if (role !== 'system') {
+      const lbl = document.createElement('div');
+      lbl.classList.add('msg-label');
+      lbl.textContent = role === 'user' ? 'YOU' : 'MAKEBOT';
+      wrap.appendChild(lbl);
+    }
+    const bubble = document.createElement('div');
+    bubble.classList.add('msg-bubble');
+    bubble.innerHTML = role === 'user' ? escHtml(text) : text;
+    wrap.appendChild(bubble);
+    msgs.appendChild(wrap);
+    scrollDown();
+    return wrap;
+  }
+
+  function addBotBubble() {
+    const wrap = document.createElement('div');
+    wrap.classList.add('msg', 'bot');
+    const lbl = document.createElement('div');
+    lbl.classList.add('msg-label');
+    lbl.textContent = 'MAKEBOT';
+    wrap.appendChild(lbl);
+    const bubble = document.createElement('div');
+    bubble.classList.add('msg-bubble', 'structured', 'streaming-cursor');
+    wrap.appendChild(bubble);
+    msgs.appendChild(wrap);
+    scrollDown();
+    return bubble;
+  }
+
+  /* ── Markdown renderer ── */
+  function escHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function inlineFmt(s) {
+    return s
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/`(.+?)`/g, '<code>$1</code>');
+  }
+
+  function guessFileName(code, section) {
+    if (code.includes('#include') || code.includes('void setup()') || code.includes('void loop()'))
+      return 'sketch.ino';
+    if (code.includes('import ') || code.includes('def '))
+      return 'main.py';
+    if (code.includes('const ') || code.includes('let ') || code.includes('function '))
+      return 'index.js';
+    if (section && /wiring/i.test(section))
+      return 'wiring-diagram.txt';
+    return 'code.txt';
+  }
+
+  function toggleCode(id) {
+    const wrap = document.getElementById('wrap-' + id);
+    if (wrap) wrap.classList.toggle('open');
+  }
+
+  function renderMd(raw) {
+    let html = '';
+    const lines = raw.split('\n');
+    let inCode = false, code = '';
+    let inUl = false, inOl = false;
+    let lastSection = '';
+
+    function closeLists() {
+      if (inUl) { html += '</ul>'; inUl = false; }
+      if (inOl) { html += '</ol>'; inOl = false; }
+    }
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Code fences
+      if (line.trimStart().startsWith('```')) {
+        if (inCode) {
+          const escaped = escHtml(code.trimEnd());
+          const id = 'code-' + Math.random().toString(36).slice(2, 8);
+          const fname = guessFileName(code, lastSection);
+          html += '<div class="code-wrap" id="wrap-' + id + '">';
+          html += '<div class="code-file-bar" onclick="toggleCode(\'' + id + '\')">';
+          html += '<span class="file-arrow">&#9654;</span>';
+          html += '<span class="file-name">' + escHtml(fname) + '</span>';
+          html += '<div class="code-file-actions">';
+          html += '<button class="code-file-btn" onclick="event.stopPropagation();copyCode(\'' + id + '\', this)">COPY</button>';
+          html += '<button class="code-file-btn" onclick="event.stopPropagation();downloadCode(\'' + id + '\')">DOWNLOAD</button>';
+          html += '</div></div>';
+          html += '<pre class="wiring-block" id="' + id + '">' + escaped + '</pre>';
+          html += '</div>';
+          code = ''; inCode = false;
+        } else {
+          closeLists(); inCode = true;
+        }
+        continue;
+      }
+      if (inCode) { code += line + '\n'; continue; }
+
+      // H1 — project name (editable)
+      if (line.startsWith('# ')) {
+        closeLists();
+        html += '<div class="project-name" contenteditable="true" spellcheck="false">' + inlineFmt(escHtml(line.slice(2).trim())) + '</div>';
+        html += '<div class="project-name-hint">click to rename</div>';
+        continue;
+      }
+
+      // H2 — section header
+      if (line.startsWith('## ')) {
+        closeLists();
+        lastSection = line.slice(3).trim();
+        html += '<div class="section-header">' + escHtml(lastSection) + '</div>';
+        continue;
+      }
+
+      // Unordered list
+      if (/^[-*]\s/.test(line)) {
+        if (inOl) { html += '</ol>'; inOl = false; }
+        if (!inUl) { html += '<ul class="parts-list">'; inUl = true; }
+        html += '<li>' + inlineFmt(escHtml(line.replace(/^[-*]\s/, ''))) + '</li>';
+        continue;
+      }
+
+      // Ordered list
+      if (/^\d+\.\s/.test(line)) {
+        if (inUl) { html += '</ul>'; inUl = false; }
+        if (!inOl) { html += '<ol class="steps-list">'; inOl = true; }
+        html += '<li>' + inlineFmt(escHtml(line.replace(/^\d+\.\s/, ''))) + '</li>';
+        continue;
+      }
+
+      // Blank line
+      if (!line.trim()) { closeLists(); continue; }
+
+      // Paragraph
+      closeLists();
+      html += '<p>' + inlineFmt(escHtml(line)) + '</p>';
+    }
+
+    // Close anything still open
+    if (inCode) {
+      const escaped = escHtml(code.trimEnd());
+      const id = 'code-' + Math.random().toString(36).slice(2, 8);
+      const fname = guessFileName(code, lastSection);
+      html += '<div class="code-wrap" id="wrap-' + id + '">';
+      html += '<div class="code-file-bar" onclick="toggleCode(\'' + id + '\')">';
+      html += '<span class="file-arrow">&#9654;</span>';
+      html += '<span class="file-name">' + escHtml(fname) + '</span>';
+      html += '<div class="code-file-actions">';
+      html += '<button class="code-file-btn" onclick="event.stopPropagation();copyCode(\'' + id + '\', this)">COPY</button>';
+      html += '<button class="code-file-btn" onclick="event.stopPropagation();downloadCode(\'' + id + '\')">DOWNLOAD</button>';
+      html += '</div></div>';
+      html += '<pre class="wiring-block" id="' + id + '">' + escaped + '</pre>';
+      html += '</div>';
+    }
+    closeLists();
+    return html;
+  }
+
+  /* ── State management ── */
+  let statusInterval = null;
+  const statusDot = document.querySelector('.status-dot');
+
+  function setGenerating(on) {
+    generating = on;
+    userScrolledUp = false;
+    sendBtn.textContent = on ? 'STOP' : 'SEND';
+    input.disabled = on;
+
+    if (on) {
+      statusDot.classList.add('active');
+      let dots = 0;
+      statusText.textContent = 'BUILDING';
+      statusInterval = setInterval(() => {
+        dots = (dots + 1) % 4;
+        statusText.textContent = 'BUILDING' + '.'.repeat(dots);
+      }, 350);
+    } else {
+      statusDot.classList.remove('active');
+      clearInterval(statusInterval);
+      statusText.textContent = 'ONLINE';
+      input.focus();
+    }
+  }
+
+  /* ── Send / stream ── */
+  async function send() {
+    const text = input.value.trim();
+
+    // If generating, stop
+    if (generating) {
+      if (controller) controller.abort();
+      return;
+    }
+
+    if (!text) return;
+
+    addMessage(text, 'user');
+    expandShell();
+    input.value = '';
+    charCount.textContent = '0 / 300';
+    setGenerating(true);
+
+    const bubble = addBotBubble();
+    let accumulated = '';
+
+    try {
+      controller = new AbortController();
+
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: text, skill: getSkillLabel(), age: getAge() }),
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(err || `Server error ${res.status}`);
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let streamError = null;
+      let dirty = false;
+      let rafId = null;
+
+      function flushRender() {
+        if (dirty) {
+          bubble.innerHTML = renderMd(accumulated);
+          scrollDown();
+          dirty = false;
+        }
+        rafId = requestAnimationFrame(flushRender);
+      }
+      rafId = requestAnimationFrame(flushRender);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6).trim();
+          if (data === '[DONE]') continue;
+          if (!data) continue;
+
+          let parsed;
+          try { parsed = JSON.parse(data); } catch { continue; }
+
+          if (parsed.error) {
+            streamError = parsed.error;
+            continue;
+          }
+          if (parsed.t) {
+            accumulated += parsed.t;
+            dirty = true;
+          }
+        }
+      }
+
+      cancelAnimationFrame(rafId);
+      /* Final render to catch anything left */
+      bubble.innerHTML = renderMd(accumulated);
+      scrollDown();
+
+      bubble.classList.remove('streaming-cursor');
+
+      if (streamError && !accumulated) {
+        throw new Error(streamError);
+      } else if (!accumulated && !streamError) {
+        throw new Error('No response — check your API key in settings');
+      } else {
+        const isBuild = /^#\s/m.test(accumulated) && /## PARTS/i.test(accumulated) && /## STEPS/i.test(accumulated);
+        if (isBuild) {
+          lastPrompt = text;
+          lastGuide = accumulated;
+          lastSkill = getSkillLabel();
+          addMessage('── build complete ──', 'system');
+          addSimButton();
+        }
+      }
+
+    } catch (err) {
+      bubble.classList.remove('streaming-cursor');
+      if (err.name === 'AbortError') {
+        if (!accumulated) {
+          bubble.parentElement.remove();
+        }
+        addMessage('── stopped ──', 'system');
+      } else {
+        if (!accumulated) {
+          bubble.innerHTML = '<p style="color:var(--hi)">Error: ' + escHtml(err.message) + '</p>';
+        }
+      }
+    } finally {
+      setGenerating(false);
+      controller = null;
+    }
+  }
+
+  /* ── Simulate ── */
+  function addSimButton() {
+    const wrap = document.createElement('div');
+    wrap.classList.add('msg', 'system');
+    const btn = document.createElement('button');
+    btn.classList.add('sim-btn');
+    btn.textContent = 'SIMULATE \u25B6';
+    btn.addEventListener('click', () => simulateProject(btn, wrap));
+    wrap.appendChild(btn);
+    msgs.appendChild(wrap);
+    scrollDown();
+  }
+
+  async function simulateProject(btn, wrap) {
+    btn.disabled = true;
+    btn.textContent = 'GENERATING SIM...';
+
+    try {
+      const res = await fetch('/api/simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: lastPrompt, guide: lastGuide }),
+      });
+
+      if (!res.ok) {
+        const { error } = await res.json();
+        throw new Error(error || 'Simulation failed');
+      }
+
+      const { embedUrl, projectUrl } = await res.json();
+
+      /* Replace button with embedded sim */
+      wrap.classList.remove('system');
+      wrap.classList.add('bot');
+      wrap.innerHTML = '';
+
+      const lbl = document.createElement('div');
+      lbl.classList.add('msg-label');
+      lbl.textContent = 'SIMULATION';
+
+      const simWrap = document.createElement('div');
+      simWrap.classList.add('sim-wrap');
+
+      const frameContainer = document.createElement('div');
+      frameContainer.classList.add('sim-frame-container');
+
+      const frame = document.createElement('iframe');
+      frame.classList.add('sim-frame');
+      frame.src = embedUrl;
+      frame.setAttribute('allowfullscreen', '');
+      frame.allow = 'cross-origin-isolated';
+
+      const link = document.createElement('div');
+      link.classList.add('sim-link');
+      link.innerHTML = 'open full editor \u2192 <a href="' + projectUrl + '" target="_blank" rel="noopener">' + projectUrl + '</a>';
+
+      frameContainer.appendChild(frame);
+      simWrap.appendChild(frameContainer);
+      simWrap.appendChild(link);
+      wrap.appendChild(lbl);
+      wrap.appendChild(simWrap);
+      scrollDown();
+
+    } catch (err) {
+      btn.textContent = 'SIMULATE \u25B6';
+      btn.disabled = false;
+      addMessage('\u2500\u2500 sim error: ' + err.message + ' \u2500\u2500', 'system');
+    }
+  }
+
+  /* ── Settings panel ── */
+  const scaleSlider = document.getElementById('scaleSlider');
+  const scaleVal    = document.getElementById('scaleVal');
+  const themeGrid   = document.getElementById('themeGrid');
+  const skillChips = document.querySelectorAll('.skill-chip');
+
+  function showSettings() {
+    settingsOverlay.style.display = 'flex';
+    msgs.style.display = 'none';
+    statusText.textContent = 'SETUP';
+    keyStatus.textContent = '';
+    keyInput.value = '';
+    keyInput.focus();
+  }
+
+  function hideSettings() {
+    settingsOverlay.style.display = 'none';
+    msgs.style.display = 'flex';
+    statusText.textContent = 'ONLINE';
+    input.focus();
+  }
+
+  async function checkKey() {
+    try {
+      const res = await fetch('/api/key');
+      const { configured } = await res.json();
+      if (configured) {
+        hideSettings();
+      } else {
+        showSettings();
+      }
+    } catch {
+      hideSettings();
+    }
+  }
+
+  async function saveKey() {
+    const key = keyInput.value.trim();
+    if (!key) { keyStatus.textContent = 'enter a key'; return; }
+
+    saveKeyBtn.disabled = true;
+    saveKeyBtn.textContent = '...';
+    keyStatus.textContent = '';
+
+    try {
+      const res = await fetch('/api/key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key }),
+      });
+
+      if (!res.ok) {
+        const { error } = await res.json();
+        throw new Error(error);
+      }
+
+      hideSettings();
+    } catch (err) {
+      keyStatus.textContent = err.message || 'failed to save';
+    } finally {
+      saveKeyBtn.disabled = false;
+      saveKeyBtn.textContent = 'SAVE KEY';
+    }
+  }
+
+  saveKeyBtn.addEventListener('click', saveKey);
+  keyInput.addEventListener('keydown', e => { if (e.key === 'Enter') saveKey(); });
+
+  settingsBtn.addEventListener('click', () => {
+    if (generating) return;
+    if (settingsOverlay.style.display === 'flex') {
+      hideSettings();
+    } else {
+      showSettings();
+    }
+  });
+
+  /* ── Theme ── */
+  function applyTheme(name) {
+    document.documentElement.setAttribute('data-theme', name);
+    localStorage.setItem('mb-theme', name);
+    themeGrid.querySelectorAll('.theme-chip').forEach(c => {
+      c.classList.toggle('active', c.dataset.theme === name);
+    });
+  }
+
+  themeGrid.querySelectorAll('.theme-chip').forEach(chip => {
+    chip.addEventListener('click', () => applyTheme(chip.dataset.theme));
+  });
+
+  /* ── Scale ── */
+  function applyScale(pct) {
+    document.body.style.zoom = pct / 100;
+    scaleSlider.value = pct;
+    scaleVal.textContent = pct + '%';
+    localStorage.setItem('mb-scale', pct);
+  }
+
+  scaleSlider.addEventListener('input', () => applyScale(Number(scaleSlider.value)));
+
+  /* ── Age slider ── */
+  const ageSlider = document.getElementById('ageSlider');
+  const ageVal = document.getElementById('ageVal');
+
+  function applyAge(age) {
+    ageSlider.value = age;
+    ageVal.textContent = age;
+    localStorage.setItem('mb-age', age);
+  }
+
+  function getAge() {
+    return Number(localStorage.getItem('mb-age')) || 25;
+  }
+
+  ageSlider.addEventListener('input', () => applyAge(Number(ageSlider.value)));
+
+  /* ── Skill level ── */
+  function applySkill(level) {
+    localStorage.setItem('mb-skill', level);
+    skillChips.forEach(c => {
+      c.classList.toggle('active', c.dataset.skill === String(level));
+    });
+  }
+
+  function getSkillLabel() {
+    const level = Number(localStorage.getItem('mb-skill')) || 1;
+    const chip = document.querySelector(`.skill-chip[data-skill="${level}"]`);
+    return chip ? chip.dataset.label : 'MONKEY';
+  }
+
+  skillChips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      const newLabel = chip.dataset.label;
+      applySkill(Number(chip.dataset.skill));
+      if (lastPrompt && lastSkill && newLabel !== lastSkill && !generating) {
+        addRebuildPrompt(newLabel);
+      }
+    });
+  });
+
+  function addRebuildPrompt(newSkill) {
+    // Remove any existing rebuild prompt
+    document.querySelectorAll('.rebuild-btn').forEach(b => b.closest('.msg').remove());
+
+    const wrap = document.createElement('div');
+    wrap.classList.add('msg', 'system');
+    const btn = document.createElement('button');
+    btn.classList.add('sim-btn', 'rebuild-btn');
+    btn.textContent = 'REBUILD AS ' + newSkill;
+    btn.addEventListener('click', () => {
+      wrap.remove();
+      input.value = lastPrompt;
+      send();
+    });
+    wrap.appendChild(btn);
+    msgs.appendChild(wrap);
+    scrollDown();
+  }
+
+  /* ── Restore saved preferences ── */
+  applyTheme(localStorage.getItem('mb-theme') || 'solder');
+  applyScale(Number(localStorage.getItem('mb-scale')) || 110);
+  applySkill(Number(localStorage.getItem('mb-skill')) || 1);
+  applyAge(Number(localStorage.getItem('mb-age')) || 25);
+
+  /* ── Copy code block ── */
+  function copyCode(id, btn) {
+    const pre = document.getElementById(id);
+    if (!pre) return;
+    navigator.clipboard.writeText(pre.textContent).then(() => {
+      btn.textContent = 'COPIED';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'COPY';
+        btn.classList.remove('copied');
+      }, 1500);
+    });
+  }
+
+  /* ── Download code block ── */
+  function downloadCode(id) {
+    const pre = document.getElementById(id);
+    if (!pre) return;
+    const wrap = pre.closest('.code-wrap');
+    const nameEl = wrap ? wrap.querySelector('.file-name') : null;
+    const fname = nameEl ? nameEl.textContent.trim() : 'code.txt';
+
+    const blob = new Blob([pre.textContent], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = fname;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  /* ── Expand shell on first send ── */
+  let expanded = false;
+  function expandShell() {
+    if (expanded) return;
+    expanded = true;
+    document.querySelector('.shell').classList.add('expanded');
+  }
+
+  /* ── Export chat ── */
+  const exportBtn = document.getElementById('exportBtn');
+
+  function exportChat() {
+    let text = '';
+
+    if (lastGuide) {
+      /* If a build exists, export it directly as clean markdown */
+      // Use the editable project name if the user changed it
+      const nameEl = msgs.querySelector('.project-name');
+      let guide = lastGuide;
+      if (nameEl) {
+        const editedName = nameEl.textContent.trim();
+        guide = guide.replace(/^# .+$/m, '# ' + editedName);
+      }
+
+      text = [
+        'MakeBot Build Guide | Skill: ' + (lastSkill || getSkillLabel()),
+        'Prompt: ' + lastPrompt,
+        '',
+        guide,
+      ].join('\n');
+    } else {
+      /* No build yet — export conversation as context */
+      const parts = [];
+      msgs.querySelectorAll('.msg').forEach(msg => {
+        if (msg.classList.contains('system')) return;
+        const isUser = msg.classList.contains('user');
+        const bubble = msg.querySelector('.msg-bubble');
+        if (!bubble) return;
+        const content = bubble.textContent.trim();
+        if (!content) return;
+        parts.push((isUser ? 'User: ' : 'MakeBot: ') + content);
+      });
+      if (!parts.length) return;
+      text = 'MakeBot Conversation\n\n' + parts.join('\n\n');
+    }
+
+    navigator.clipboard.writeText(text).then(() => {
+      exportBtn.textContent = 'COPIED';
+      setTimeout(() => { exportBtn.textContent = 'EXPORT'; }, 1500);
+    });
+  }
+
+  exportBtn.addEventListener('click', exportChat);
+
+  /* ── Event listeners ── */
+  sendBtn.addEventListener('click', send);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+
+  /* ── Boot ── */
+  checkKey();
+</script>
+</body>
+</html>
