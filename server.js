@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { rateLimit } from 'express-rate-limit';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -23,8 +24,9 @@ process.on('unhandledRejection', (err) => {
   if (isAbortError(err)) return;
   console.error('Unhandled rejection:', err);
 });
+
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4444;
 const CONFIG_PATH = join(__dirname, 'config.json');
 
 /* ── Config persistence ── */
@@ -46,8 +48,52 @@ function getApiKey() {
 }
 
 /* ── Express setup ── */
+app.disable('x-powered-by');
+
+/* ── Rate limiting ── */
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests — please wait a moment' },
+});
+app.use('/api/', apiLimiter);
+
+/* ── Security headers ── */
+app.use((_req, res, next) => {
+  res.setHeader('Content-Security-Policy',
+    "default-src 'self'; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+    "font-src 'self' https://fonts.gstatic.com; " +
+    "script-src 'self' 'unsafe-inline'; " +
+    "connect-src 'self'; " +
+    "frame-src https://wokwi.com; " +
+    "img-src 'self' data:;"
+  );
+  next();
+});
+
+/* ── CORS: same-origin only ── */
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const host = req.headers.host;
+  if (!origin || origin === `http://${host}` || origin === `https://${host}`) {
+    return next();
+  }
+  res.status(403).json({ error: 'Cross-origin requests are not allowed' });
+});
+
 app.use(express.json());
-app.use(express.static(join(__dirname, 'public')));
+app.use(express.static(join(__dirname, 'public'), {
+  etag: true,
+  setHeaders(res, filePath) {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+    }
+  },
+}));
 
 /* ── API key routes ── */
 app.get('/api/key', (_req, res) => {
@@ -57,6 +103,7 @@ app.get('/api/key', (_req, res) => {
 app.post('/api/key', (req, res) => {
   const key = req.body.key?.trim();
   if (!key) return res.status(400).json({ error: 'Key required' });
+  if (!/^sk-ant-/.test(key)) return res.status(400).json({ error: 'Invalid key format — expected sk-ant-...' });
 
   const cfg = loadConfig();
   cfg.apiKey = key;
@@ -66,7 +113,7 @@ app.post('/api/key', (req, res) => {
 
 /* ── System prompt ── */
 const SYSTEM = [
-  'You are MakeBot -- an electronics engineer and maker educator.',
+  'You are mertle.bot -- an electronics engineer and maker educator.',
   '',
   'Given a project idea, produce a short, accurate, build-ready guide.',
   'IMPORTANT: Be CONCISE. Short descriptions, no filler. Get to the point.',
@@ -127,7 +174,7 @@ const SIM_PROMPT = [
   '',
   '{',
   '  "version": 1,',
-  '  "author": "MakeBot",',
+  '  "author": "mertle.bot",',
   '  "editor": "wokwi",',
   '  "parts": [',
   '    { "type": "wokwi-arduino-uno", "id": "uno", "top": 0, "left": 0, "attrs": {} }',
@@ -185,7 +232,7 @@ const SIM_PROMPT = [
   '- Include Serial.begin(115200) in setup() and Serial.println debug messages',
   '- Use descriptive variable names',
   '- Add comments for non-obvious logic',
-  '- If a library is needed that Wokwi might not have, use a simpler built-in alternative',
+  '- Use the correct library for the component (e.g. FastLED.h for NeoPixels, DHT.h for DHT22) -- required libraries will be auto-installed',
   '',
   '== CRITICAL RULES ==',
   '',
@@ -197,10 +244,73 @@ const SIM_PROMPT = [
   '- DO NOT include any text outside the two code blocks',
 ].join('\n');
 
+/* ── Arduino library auto-install for Wokwi ── */
+const LIBRARY_MAP = {
+  'FastLED.h':               'FastLED',
+  'Adafruit_NeoPixel.h':     'Adafruit NeoPixel',
+  'DHT.h':                   'DHT sensor library',
+  'DHT_U.h':                 'DHT sensor library',
+  'Adafruit_SSD1306.h':      'Adafruit SSD1306',
+  'Adafruit_GFX.h':          'Adafruit GFX Library',
+  'Adafruit_BME280.h':       'Adafruit BME280 Library',
+  'Adafruit_BMP280.h':       'Adafruit BMP280 Library',
+  'Adafruit_MPU6050.h':      'Adafruit MPU6050',
+  'Adafruit_ADXL345_U.h':    'Adafruit ADXL345',
+  'Adafruit_HMC5883_U.h':    'Adafruit HMC5883 Unified',
+  'Adafruit_Unified_Sensor.h':'Adafruit Unified Sensor',
+  'LiquidCrystal_I2C.h':     'LiquidCrystal I2C',
+  'IRremote.h':               'IRremote',
+  'IRremoteESP8266.h':        'IRremoteESP8266',
+  'Keypad.h':                 'Keypad',
+  'TM1637Display.h':          'TM1637Display',
+  'ezButton.h':               'ezButton',
+  'RTClib.h':                 'RTClib',
+  'DS1307RTC.h':              'DS1307RTC',
+  'TimeLib.h':                'Time',
+  'MFRC522.h':                'MFRC522',
+  'Encoder.h':                'Encoder',
+  'PID_v1.h':                 'PID',
+  'ArduinoJson.h':            'ArduinoJson',
+  'PubSubClient.h':           'PubSubClient',
+  'U8g2lib.h':                'U8g2',
+  'MAX6675.h':                'MAX6675 library',
+  'HX711.h':                  'HX711',
+  'Stepper28BYJ.h':           'Stepper28BYJ',
+  'AccelStepper.h':           'AccelStepper',
+  'NewPing.h':                'NewPing',
+  'Ultrasonic.h':             'Ultrasonic',
+  'SoftwareSerial.h':         'SoftwareSerial',
+  'AltSoftSerial.h':          'AltSoftSerial',
+  'NTPClient.h':              'NTPClient',
+  'WiFiUdp.h':                'WiFi',
+  'AsyncTCP.h':               'AsyncTCP',
+  'ESPAsyncWebServer.h':      'ESPAsyncWebServer',
+};
+
+// Headers that ship with Arduino core / ESP32 core -- no install needed
+const BUILTIN_HEADERS = new Set([
+  'Arduino.h','Wire.h','SPI.h','Servo.h','EEPROM.h','LiquidCrystal.h',
+  'Stepper.h','SD.h','SD_MMC.h','FS.h','SPIFFS.h','LittleFS.h',
+  'WiFi.h','WiFiClient.h','WiFiServer.h','HTTPClient.h','WebServer.h',
+  'BluetoothSerial.h','BLEDevice.h','BLEServer.h','BLEUtils.h','BLE2902.h',
+  'HardwareSerial.h','IPAddress.h','Ticker.h','esp_system.h',
+  'avr/pgmspace.h','avr/io.h','avr/interrupt.h','util/delay.h',
+  'math.h','stdio.h','string.h','stdlib.h',
+]);
+
+function extractLibraries(sketch) {
+  const headers = [...sketch.matchAll(/#include\s*<([^>]+)>/g)].map(m => m[1]);
+  return [...new Set(
+    headers.flatMap(h => (!BUILTIN_HEADERS.has(h) && LIBRARY_MAP[h]) ? [LIBRARY_MAP[h]] : [])
+  )];
+}
+
 /* ── Simulate endpoint ── */
 app.post('/api/simulate', async (req, res) => {
   const { prompt, guide } = req.body;
   if (!prompt) return res.status(400).json({ error: 'Prompt required' });
+  if (!guide) return res.status(400).json({ error: 'Guide required' });
+  if (prompt.length > 600) return res.status(400).json({ error: 'Prompt too long (max 600 characters)' });
 
   const apiKey = getApiKey();
   if (!apiKey) return res.status(401).json({ error: 'API key not configured' });
@@ -233,6 +343,15 @@ app.post('/api/simulate', async (req, res) => {
     JSON.parse(diagram);
 
     /* Step 2: Save to Wokwi */
+    const libs = extractLibraries(sketch);
+    const files = [
+      { name: 'sketch.ino',   content: sketch },
+      { name: 'diagram.json', content: diagram },
+    ];
+    if (libs.length > 0) {
+      files.push({ name: 'libraries.txt', content: libs.join('\n') });
+    }
+
     const wokwiRes = await fetch('https://wokwi.com/api/projects/save', {
       method: 'POST',
       headers: {
@@ -241,12 +360,9 @@ app.post('/api/simulate', async (req, res) => {
         'Origin': 'https://wokwi.com',
       },
       body: JSON.stringify({
-        name: `MakeBot — ${prompt.slice(0, 60)}`,
+        name: `mertle.bot — ${prompt.slice(0, 60)}`,
         unlisted: true,
-        files: [
-          { name: 'sketch.ino', content: sketch },
-          { name: 'diagram.json', content: diagram },
-        ]
+        files,
       })
     });
 
@@ -258,7 +374,7 @@ app.post('/api/simulate', async (req, res) => {
     const { projectId } = await wokwiRes.json();
 
     res.json({
-      embedUrl: `https://wokwi.com/projects/${projectId}/embed?dark=1`,
+      embedUrl: `https://wokwi.com/projects/${projectId}/embed?dark=1&view=diagram`,
       projectUrl: `https://wokwi.com/projects/${projectId}`,
     });
 
@@ -325,29 +441,73 @@ function ageContext(age) {
   return 'AGE: ' + age + '+. Adult. No supervision warnings. No safety disclaimers unless the project involves genuinely hazardous voltages or chemicals. Write directly and efficiently.';
 }
 
+/* ── Chat system prompt (for non-build conversations) ── */
+const CHAT_SYSTEM = [
+  'You are mertle.bot -- a friendly electronics engineer and maker educator.',
+  '',
+  'The user is chatting with you, NOT requesting a build guide.',
+  'Answer their question, have a conversation, or help them brainstorm.',
+  'Be concise and helpful. Use your electronics/maker expertise when relevant.',
+  'Do NOT produce a build guide unless the user explicitly asks you to build or make something.',
+  'Keep responses short and conversational.',
+].join('\n');
+
+/* ── Intent classifier ── */
+async function classifyIntent(client, prompt) {
+  try {
+    const res = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 10,
+      system: 'Classify the user message. Reply with EXACTLY one word: BUILD if they want you to design/create/generate a specific hardware project or build guide (e.g. "make me an LED blinker", "build a robot arm", "I want a temperature sensor project"), or CHAT for anything else (questions, conversation, brainstorming, asking for help, asking what you can do, greetings, clarifications, opinions, vague ideas without a concrete project request). When in doubt, reply CHAT. Reply with only BUILD or CHAT, nothing else.',
+      messages: [{ role: 'user', content: prompt }],
+    });
+    const answer = res.content[0].text.trim().toUpperCase();
+    return answer === 'BUILD' ? 'BUILD' : 'CHAT';
+  } catch (err) {
+    console.error('Intent classification failed, defaulting to BUILD:', err.message);
+    return 'BUILD';
+  }
+}
+
+/* ── Return 405 for wrong-method requests ── */
+app.get('/api/generate', (_req, res) => {
+  res.set('Allow', 'POST').status(405).json({ error: 'Method Not Allowed — use POST' });
+});
+
 /* ── Generate (streaming) ── */
-app.post('/api/generate', (req, res) => {
+app.post('/api/generate', async (req, res) => {
   const prompt = req.body.prompt?.trim();
   const skill = req.body.skill || 'MONKEY';
   const age = Number(req.body.age) || 25;
   if (!prompt) return res.status(400).json({ error: 'Prompt required' });
+  if (prompt.length > 50000) return res.status(400).json({ error: 'Prompt too long' });
 
   const apiKey = getApiKey();
   if (!apiKey) return res.status(401).json({ error: 'API key not configured — open settings' });
 
+  const client = new Anthropic({ apiKey });
+
+  /* Classify intent before streaming */
+  const intent = await classifyIntent(client, prompt);
+  console.log(`Intent: ${intent} — "${prompt.slice(0, 60)}"`);
+
   const skillContext = SKILL_CONTEXT[skill] || SKILL_CONTEXT.MONKEY;
-  const fullSystem = SYSTEM + '\n\n' + skillContext + '\n\n' + ageContext(age);
+  const buildSystem = SYSTEM + '\n\n' + skillContext + '\n\n' + ageContext(age);
+  const chatSystem = CHAT_SYSTEM + '\n\n' + ageContext(age);
+  const fullSystem = intent === 'BUILD' ? buildSystem : chatSystem;
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
   res.flushHeaders();
 
+  /* Send intent hint to frontend so it knows whether this is a build */
+  res.write(`data: ${JSON.stringify({ intent })}\n\n`);
+
   try {
-    const client = new Anthropic({ apiKey });
     const stream = client.messages.stream({
       model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
+      max_tokens: intent === 'BUILD' ? 4096 : 1024,
       system: fullSystem,
       messages: [{ role: 'user', content: prompt }],
     });
@@ -396,6 +556,13 @@ app.post('/api/generate', (req, res) => {
   }
 });
 
+/* ── Global error handler (suppress stack traces in responses) ── */
+// eslint-disable-next-line no-unused-vars
+app.use((err, _req, res, _next) => {
+  console.error('Unhandled error:', err.message);
+  res.status(err.status || 500).json({ error: 'Internal server error' });
+});
+
 app.listen(PORT, () => {
-  console.log(`\n  MakeBot running → http://localhost:${PORT}\n`);
+  console.log(`\n  mertle.bot (E — Master) running → http://localhost:${PORT}\n`);
 });
